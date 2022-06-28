@@ -9,6 +9,7 @@ import yfinance as yf
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def covariance(x, y):
     # Finding the mean of the series x and y
     mean_x = sum(x)/float(len(x))
@@ -52,6 +53,7 @@ def data_extraction(data):
     #Extracting column specific data from yahoo finance
     close_data = data['Adj Close']
     
+    
     #Initializing data and its shape
     close_array = np.array(close_data)
     data_position_x = close_array.shape[0] -1
@@ -82,6 +84,8 @@ def data_extraction(data):
     #Resize array into stock specific data                
     close_returns = np.array(storage)
     close_returns = np.resize(close_returns,(close_array.shape[1], close_array.shape[0]-1))
+    
+    
     return(close_returns)
 
 
@@ -174,6 +178,7 @@ def data_plot(stats_values):
     
         #Plot efficient frontier calculations
         print('Plotting graph...')
+        print("")
         plt.xlabel('Risk (Standard Deviation)')
         plt.ylabel('% Returns (Mean)')
         plt.scatter(std_results, mean_results)
@@ -186,8 +191,87 @@ def data_plot(stats_values):
 
     else:
         print('No graphical data avaliable.')
+        print("")
         return
+
+
+
+def portfolio_calculations(data, weights):
+    print("Portfolio analysis:")
+    #daily returns as percentage
+    daily_change = data["Close"].pct_change()
+    #print(daily_change.describe())
+
+    #portfolio return
+    portfolio_returns = (daily_change * weights).sum(axis = 1)
     
+    #total cumulative returns for the portfolio
+    cumulative_returns = (portfolio_returns + 1).cumprod()
+    plt.xlabel('Time')
+    plt.ylabel('Returns %')
+    plt.plot(cumulative_returns)
+    plt.show() 
+
+    #standard deviation I.E  daily risk/volatility
+    risk = np.std(portfolio_returns)
+    print("Daily risk", risk)
+    
+    #annual volatility
+    annual_risk = np.std(portfolio_returns) * np.sqrt(252)
+    print("Annual risk", annual_risk)
+    
+    '''
+    #Correlation matrix
+    correlation = daily_change.corr()
+    print("Correlation:\n", correlation)
+    '''
+    
+    #Sharpe ratio (higher is better)
+    sharpe = (np.mean(portfolio_returns)/np.std(portfolio_returns)) * np.sqrt(252)
+    print("Sharpe Ratio:", sharpe, " - Higher is better")
+    print("")
+    
+    #Monte Carlo Simulation - random portfolio weights
+    print("Monte Carlo Simulation:")
+    mc_weights = []
+    mc_returns = []
+    mc_risk = []
+    mc_sharpe = []
+       
+    count = 500
+    for num in range(0, count):
+        random_weights = np.random.uniform(size = len(daily_change.columns))
+        random_weights = random_weights/np.sum(random_weights)
+        mc_weights.append(random_weights)
+        
+        #returns
+        mean_returns = (daily_change.mean() * random_weights).sum()*252
+        mc_returns.append(mean_returns)
+        
+        #volatility
+        mc_portfolio_returns = (daily_change * random_weights).sum(axis = 1)
+        mc_annual_std = np.std(mc_portfolio_returns) * np.sqrt(252)
+        mc_risk.append(mc_annual_std)
+        
+        #Sharpe Ratio
+        sharpe_ratio = (np.mean(mc_portfolio_returns)/np.std(mc_portfolio_returns)) * np.sqrt(252)
+        mc_sharpe.append(sharpe_ratio)
+        
+    #highest sharpe index value
+    max_index = np.argmax(mc_sharpe)
+    
+    #Max sharpe ratio
+    calc_sharpe = mc_sharpe[max_index]
+    print("Simulated sharpe: ", calc_sharpe)
+    
+    #Optimal weights
+    calc_weights = mc_weights[max_index]
+    print("Simulated Weighting:")
+    print(stocks, "\n", calc_weights)
+    
+    return
+
+   
 ##############################################################################
 
 
@@ -197,10 +281,24 @@ def data_plot(stats_values):
 
 
 ##############################################################################
-#Efficient frontier for two stocks
-#Portfolio information for two or more stocks
-#Check and reorder the stocks with the data output from yf.download
-stocks = ['IOO.AX', 'IOZ.AX']
+'''
+Efficient frontier for two stocks
+Portfolio information for two or more stocks
+Check and reorder the stocks with the data output from yf.download 
+(ALPHABETICAL ORDER)
+'''
+stocks = ["IOO.AX", "IOZ.AX"]
+
+
+#Commsec pocket example 
+#stock = ["ETHI.AX", "IEM.AX", "IOO.AX", "IOZ.AX", "IXJ.AX", "NDQ.AX", "SYI.AX"]
+#weights = [0.1, 0.1, 0.2, 0.1, 0.2, 0.2, 0.1]
+
+'''
+For a complete stock comparison, individual weights must equal 1.0
+For a portfolio stock comparison, individual weights must equal the portfolio weight
+'''
+weights = [0.5, 0.5]
 
 '''
 #Date format is YYYY-MM-DD
@@ -208,10 +306,16 @@ start_date = '2011-01-03'
 finish_date = '2022-06-26'
 '''
 
-time_interval = "3mo"
-time_period = "10y"
+# valid intervals: 1d,5d,1wk,1mo,3mo
+time_interval = "1d"
+# valid periods: 5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd
+time_period = "5y"
     
 data = yf.download(stocks, period = time_period, interval = time_interval)
+
+
 close_returns = data_extraction(data)
 stats_values = stat_calc(close_returns)
 data_result = data_plot(stats_values) 
+portfolio_calculations(data, weights)
+
