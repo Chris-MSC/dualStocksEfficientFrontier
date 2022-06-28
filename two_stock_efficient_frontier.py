@@ -178,7 +178,7 @@ def data_plot(stats_values):
         plt.ylabel('% Returns (Mean)')
         plt.scatter(std_results, mean_results)
         plt.plot(std_results, mean_results)
-        plt.show    
+        plt.show()    
     
         data_result = [stocks[0], weight_array_up, mean_results, std_results, weight_array_down, stocks[1]]
         return(data_result)
@@ -200,13 +200,18 @@ def data_plot(stats_values):
 #Efficient frontier for two stocks
 #Portfolio information for two or more stocks
 #Check and reorder the stocks with the data output from yf.download
-stocks = ['IOO.AX', 'IVV.AX']
+stocks = ['IOO.AX', 'IOZ.AX']
 
+'''
 #Date format is YYYY-MM-DD
-start_date = '2022-06-20'
-finish_date = '2022-06-23'
+start_date = '2011-01-03'
+finish_date = '2022-06-26'
+'''
+
+time_interval = "3mo"
+time_period = "10y"
     
-data = yf.download(stocks, start = start_date, end = finish_date)
+data = yf.download(stocks, period = time_period, interval = time_interval)
 close_returns = data_extraction(data)
 stats_values = stat_calc(close_returns)
 data_result = data_plot(stats_values) 
